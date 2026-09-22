@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "external-dns.fullname" . }}
+  labels:
+    {{- include "external-dns.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "external-dns.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        {{- include "external-dns.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      containers:
+        - name: external-dns
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --source=service
+            - --provider=oci
+            - --oci-auth-instance-principal
+            - --oci-compartment-ocid={{ required "oci.compartmentId is required" .Values.oci.compartmentId }}
+            - --oci-zone-scope={{ .Values.oci.zoneScope }}
+            - --domain-filter={{ required "domainFilter is required" .Values.domainFilter }}
+            - --policy={{ .Values.policy }}
+            - --registry=txt
+            - --txt-owner-id={{ required "txtOwnerId is required" .Values.txtOwnerId }}
+            - --oci-zones-cache-duration={{ .Values.zoneCacheDuration }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

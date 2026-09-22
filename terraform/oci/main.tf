@@ -24,6 +24,91 @@ module "ci_budget" {
   freeform_tags = local.tags
 }
 
+module "dns_compartment" {
+  count = var.dns_enabled ? 1 : 0
+
+  source                = "../modules/compartment/oci"
+  parent_compartment_id = var.team_compartment_id
+  name                  = var.dns_compartment_name
+  description           = var.dns_compartment_description
+  freeform_tags         = var.dns_freeform_tags
+  enable_delete         = false
+}
+
+module "dns" {
+  count = var.dns_enabled ? 1 : 0
+
+  source = "../modules/dns/oci"
+
+  compartment_id = module.dns_compartment[0].id
+  zone_name      = var.dns_zone_name
+  freeform_tags  = var.dns_freeform_tags
+}
+
+resource "oci_identity_dynamic_group" "external_dns" {
+  count = var.dns_enabled ? 1 : 0
+
+  compartment_id = var.tenancy_ocid
+  name           = var.external_dns_dynamic_group_name
+  description    = var.external_dns_dynamic_group_description
+  matching_rule  = var.external_dns_dynamic_group_matching_rule
+  freeform_tags  = var.dns_freeform_tags
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "oci_identity_policy" "external_dns" {
+  count = var.dns_enabled ? 1 : 0
+
+  compartment_id = var.dns_compartment_id
+  name           = var.external_dns_policy_name
+  description    = var.external_dns_policy_description
+  freeform_tags  = var.dns_freeform_tags
+  statements = concat(
+    [
+      "allow dynamic-group ${var.external_dns_dynamic_group_name} to manage dns in compartment id ${var.dns_compartment_id}",
+    ],
+    var.external_dns_policy_statements,
+  )
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+# The DNS compartment, zone, dynamic group, and policy already exist. Their
+# OCIDs and current definitions are supplied in private tfvars before enabling
+# DNS management, so Terraform adopts rather than recreates them.
+import {
+  for_each = var.dns_enabled ? toset(["dns-compartment"]) : toset([])
+
+  to = module.dns_compartment[0].oci_identity_compartment.this
+  id = var.dns_compartment_id
+}
+
+import {
+  for_each = var.dns_enabled ? toset(["dns-zone"]) : toset([])
+
+  to = module.dns[0].oci_dns_zone.this
+  id = var.dns_zone_id
+}
+
+import {
+  for_each = var.dns_enabled ? toset(["external-dns-dynamic-group"]) : toset([])
+
+  to = oci_identity_dynamic_group.external_dns[0]
+  id = var.external_dns_dynamic_group_id
+}
+
+import {
+  for_each = var.dns_enabled ? toset(["external-dns-policy"]) : toset([])
+
+  to = oci_identity_policy.external_dns[0]
+  id = var.external_dns_policy_id
+}
+
 module "ci_sweep" {
   source                = "../modules/lifecycle/oci"
   tenancy_ocid          = var.tenancy_ocid

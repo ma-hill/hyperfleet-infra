@@ -75,6 +75,101 @@ variable "budget_alert_recipients" {
   type        = list(string)
 }
 
+variable "dns_enabled" {
+  description = "Adopt and manage the existing OCI DNS resources."
+  type        = bool
+  default     = false
+}
+
+variable "dns_compartment_id" {
+  description = "OCID of the existing DNS compartment to import."
+  type        = string
+  default     = null
+}
+
+variable "dns_compartment_name" {
+  description = "Name of the existing DNS compartment."
+  type        = string
+  default     = "hyperfleet-dns"
+}
+
+variable "dns_compartment_description" {
+  description = "Current description of the existing DNS compartment."
+  type        = string
+  default     = "Long-lived DNS zones for HyperFleet test domains. Do not delete: parent-domain NS delegations point at these zones' nameservers."
+}
+
+variable "dns_freeform_tags" {
+  description = "Existing freeform tags on persistent DNS resources."
+  type        = map(string)
+  default = {
+    "hyperfleet-keep"       = "true"
+    "hyperfleet-managed-by" = "manual"
+    "hyperfleet-purpose"    = "test-dns"
+    "jira"                  = "HYPERFLEET-1573"
+  }
+}
+
+variable "dns_zone_id" {
+  description = "OCID of the existing OCI DNS zone to import."
+  type        = string
+  default     = null
+}
+
+variable "dns_zone_name" {
+  description = "Name of the existing public OCI DNS zone."
+  type        = string
+  default     = "oci.hypershell.app"
+}
+
+variable "external_dns_dynamic_group_id" {
+  description = "OCID of the existing external-dns instance-principal dynamic group to import."
+  type        = string
+  default     = null
+}
+
+variable "external_dns_dynamic_group_name" {
+  description = "Name of the existing external-dns dynamic group."
+  type        = string
+  default     = "hyperfleet-external-dns"
+}
+
+variable "external_dns_dynamic_group_description" {
+  description = "Current description of the existing external-dns dynamic group."
+  type        = string
+  default     = "OKE worker nodes allowed to manage the HyperFleet test DNS zone via external-dns"
+}
+
+variable "external_dns_dynamic_group_matching_rule" {
+  description = "Current OCI matching rule for the external-dns dynamic group."
+  type        = string
+  default     = null
+}
+
+variable "external_dns_policy_id" {
+  description = "OCID of the existing external-dns IAM policy to import."
+  type        = string
+  default     = null
+}
+
+variable "external_dns_policy_name" {
+  description = "Name of the existing external-dns IAM policy."
+  type        = string
+  default     = "hyperfleet-external-dns-policy"
+}
+
+variable "external_dns_policy_description" {
+  description = "Current description of the existing external-dns IAM policy."
+  type        = string
+  default     = "external-dns on team OKE clusters manages records in hyperfleet-dns only"
+}
+
+variable "external_dns_policy_statements" {
+  description = "Current OCI policy statements for the external-dns dynamic group."
+  type        = list(string)
+  default     = []
+}
+
 variable "sweep_function_image" {
   description = <<-EOT
     Tag-form OCIR image reference for the oci-ci-sweep function (e.g.

@@ -26,3 +26,9 @@ variable "freeform_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_delete" {
+  description = "Whether OCI permits this compartment to be deleted."
+  type        = bool
+  default     = true
+}

@@ -46,6 +46,17 @@ budget_alert_recipients = [
   "hyperfleet-ci-alerts@example.com",
 ]
 
+# Existing OCI DNS resources. Keep the OCIDs and current dynamic-group/policy
+# definitions in a private tfvars file. Terraform imports these resources when
+# dns_enabled is true; it must not recreate the delegated zone.
+# dns_enabled = true
+# dns_compartment_id = "ocid1.compartment.oc1..REPLACE_ME"
+# dns_zone_id = "ocid1.dns-zone.oc1..REPLACE_ME"
+# external_dns_dynamic_group_id = "ocid1.dynamicgroup.oc1..REPLACE_ME"
+# external_dns_dynamic_group_matching_rule = "REPLACE_WITH_CURRENT_RULE"
+# external_dns_policy_id = "ocid1.policy.oc1..REPLACE_ME"
+# external_dns_policy_statements = ["REPLACE_WITH_CURRENT_STATEMENT"]
+
 # Build and push functions/oci-ci-sweep first (see its README), then set the
 # tag you pushed here and its @sha256 digest below (read the digest back with
 # `docker inspect --format='{{index .RepoDigests 0}}'`). Terraform creates the

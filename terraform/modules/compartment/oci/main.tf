@@ -4,5 +4,5 @@ resource "oci_identity_compartment" "this" {
   description    = var.description
   freeform_tags  = var.freeform_tags
 
-  enable_delete = true
+  enable_delete = var.enable_delete
 }

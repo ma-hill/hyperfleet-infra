@@ -147,6 +147,12 @@ lookup in the module) rather than hardcoding one; with
 resolves to a single AD in `us-sanjose-1` today because it's the tenancy's
 only one there.
 
+## DNS
+
+The `hyperfleet-dns` compartment, `oci.hypershell.app` zone, and the external-dns dynamic group and IAM policy already exist. Set `dns_enabled=true` with their OCIDs and current definitions in private tfvars to import and manage them. The zone must never be recreated because OCI can assign different nameservers and break its parent-zone delegation.
+
+Add the existing OCI DNS resource values to a private tfvars file using the placeholders in [`ci.tfvars.example`](ci.tfvars.example), then review the plan before enabling DNS management.
+
 ## Notifications
 
 **Owner:** `#hcm-hyperfleet-team`.

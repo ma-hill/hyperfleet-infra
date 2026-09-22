@@ -3,6 +3,16 @@ output "ci_compartment_id" {
   value       = module.ci_compartment.id
 }
 
+output "dns_zone_id" {
+  description = "OCID of the imported DNS zone, or null when DNS is disabled."
+  value       = try(module.dns[0].zone_id, null)
+}
+
+output "dns_nameservers" {
+  description = "Authoritative OCI nameservers for the imported DNS zone."
+  value       = try(module.dns[0].nameservers, [])
+}
+
 output "sweep_container_repository_path" {
   description = "OCIR repository path to push the sweep function's image to."
   value       = module.ci_sweep.container_repository_path

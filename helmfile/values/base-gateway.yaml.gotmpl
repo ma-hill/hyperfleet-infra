@@ -8,6 +8,10 @@ monitoring:
 
 service:
   type: {{ .Values.gatewayServiceType }}
+  {{- if env "EXTERNAL_DNS_HOSTNAME" }}
+  annotations:
+    external-dns.kubernetes.io/hostname: {{ env "EXTERNAL_DNS_HOSTNAME" | quote }}
+  {{- end }}
 
 envoy:
   logging:
