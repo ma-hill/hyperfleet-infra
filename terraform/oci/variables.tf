@@ -87,7 +87,7 @@ variable "dns_compartment_id" {
   default     = null
 
   validation {
-    condition     = !var.dns_enabled || trimspace(coalesce(var.dns_compartment_id, "")) != ""
+    condition     = var.dns_enabled ? (var.dns_compartment_id != null && trimspace(var.dns_compartment_id) != "") : true
     error_message = "dns_compartment_id is required when dns_enabled is true."
   }
 }
@@ -121,7 +121,7 @@ variable "dns_zone_id" {
   default     = null
 
   validation {
-    condition     = !var.dns_enabled || trimspace(coalesce(var.dns_zone_id, "")) != ""
+    condition     = var.dns_enabled ? (var.dns_zone_id != null && trimspace(var.dns_zone_id) != "") : true
     error_message = "dns_zone_id is required when dns_enabled is true."
   }
 }
@@ -138,7 +138,7 @@ variable "external_dns_dynamic_group_id" {
   default     = null
 
   validation {
-    condition     = !var.dns_enabled || trimspace(coalesce(var.external_dns_dynamic_group_id, "")) != ""
+    condition     = var.dns_enabled ? (var.external_dns_dynamic_group_id != null && trimspace(var.external_dns_dynamic_group_id) != "") : true
     error_message = "external_dns_dynamic_group_id is required when dns_enabled is true."
   }
 }
@@ -161,7 +161,7 @@ variable "external_dns_dynamic_group_matching_rule" {
   default     = null
 
   validation {
-    condition     = !var.dns_enabled || trimspace(coalesce(var.external_dns_dynamic_group_matching_rule, "")) != ""
+    condition     = var.dns_enabled ? (var.external_dns_dynamic_group_matching_rule != null && trimspace(var.external_dns_dynamic_group_matching_rule) != "") : true
     error_message = "external_dns_dynamic_group_matching_rule is required when dns_enabled is true."
   }
 }
@@ -172,7 +172,7 @@ variable "external_dns_policy_id" {
   default     = null
 
   validation {
-    condition     = !var.dns_enabled || trimspace(coalesce(var.external_dns_policy_id, "")) != ""
+    condition     = var.dns_enabled ? (var.external_dns_policy_id != null && trimspace(var.external_dns_policy_id) != "") : true
     error_message = "external_dns_policy_id is required when dns_enabled is true."
   }
 }
