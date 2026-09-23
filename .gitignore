@@ -13,6 +13,10 @@
 !**/dev-prow.tfvars
 !**/dev-prow.tfbackend
 
+# Per-run CI integration env files rendered by `make ci-tf-env`
+terraform/envs/gke/ci-*.tfvars
+terraform/envs/gke/ci-*.tfbackend
+
 # OCI CI stack personal config (keep the examples)
 terraform/oci/ci.tfvars
 terraform/oci/ci.tfbackend

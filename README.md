@@ -180,6 +180,7 @@ configurable in the chart values.
 | `make ci-dry-run` | `ci-validate` + `validate maestro` + `validate namespace cleaner` + other chart/config checks |
 | `make ci-test` | `install terraform` + `get-credentials` + `install-maestro` + `create-maestro-consumer` + `health-check-maestro` |
 | `make ci-cleanup` | `uninstall-maestro` + `destroy-terraform` |
+| `make ci-tf-env CI_ID=<id>` | Render `envs/gke/ci-<id>.tfvars` and `.tfbackend` for an ephemeral CI cluster from `ci.tfvars.template` and `ci.tfbackend.template` |
 
 ## Environment Variables
 
@@ -543,7 +544,7 @@ hyperfleet-infra/
 │   │   ├── cluster/gke/             # GKE cluster module
 │   │   ├── lifecycle/               # Lifecycle enforcer (Cloud Function + Scheduler)
 │   │   └── pubsub/                  # Google Pub/Sub module
-│   └── envs/gke/                    # Per-developer tfvars and tfbackend files
+│   └── envs/gke/                    # Per-developer tfvars and tfbackend files, prow config, CI templates
 ├── generated-values-from-terraform/ # Auto-generated, gitignored
 └── generated-values-rabbitmq/       # Auto-generated, gitignored
 ```
