@@ -73,13 +73,18 @@ AUTHORINO_OPERATOR_NAMESPACE      ?= authorino-operator
 AUTHORINO_OPERATOR_MANIFEST       ?= https://raw.githubusercontent.com/Kuadrant/authorino-operator/$(AUTHORINO_OPERATOR_COMMIT)/config/deploy/manifests.yaml
 AUTHORINO_OPERATOR_MANIFEST_SHA256 ?= ce2bef459d1456cbe462754cad571f87150fc1ad8bee4f1d010eb0db5b0aabdd
 
+CERT_MANAGER_VERSION         ?= v1.21.2
+CERT_MANAGER_NAMESPACE       ?= cert-manager
+CERT_MANAGER_MANIFEST        ?= https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.yaml
+CERT_MANAGER_MANIFEST_SHA256 ?= e03b668ec8675214af6b0a671699d088f2601fa3878e0dbe1b41d3feafd1879f
+
 LIFECYCLE_DIR        ?= functions/lifecycle-enforcer
 OCI_SWEEP_DIR        ?= functions/oci-ci-sweep
 
 CLEANER_NAMESPACE    ?= $(NAMESPACE)
 CLEANER_SCHEDULE     ?= 0 * * * *
 CLEANER_LABEL_SELECTOR ?= hyperfleet.io/cluster-id hyperfleet.io/test-run e2e/hyperfleet.io/run-id
-CLEANER_AGE_MINUTES  ?= 180
+CLEANER_AGE_MINUTES  ?= 120
 CLEANER_MAESTRO_URL  ?= http://maestro.$(MAESTRO_NAMESPACE).svc.cluster.local:8000
 
 # ==== Terraform Targets ====
@@ -265,7 +270,38 @@ uninstall-maestro: check-helm uninstall-applied-manifest-crd ## Uninstall Maestr
 	helm uninstall $(MAESTRO_NAMESPACE)-maestro --namespace $(MAESTRO_NAMESPACE) || true
 
 
-# ==== Authorino Targets ====
+# ==== Gateway Security Targets ====
+.PHONY: install-cert-manager
+install-cert-manager: check-kubectl ## Install cert-manager (pinned, cluster-wide) for gateway internal TLS
+	@echo "Installing cert-manager $(CERT_MANAGER_VERSION)..."
+	@tmp=$$(mktemp) && \
+	if ! curl -fsSL -o "$$tmp" "$(CERT_MANAGER_MANIFEST)"; then \
+		echo "ERROR: failed to download cert-manager manifest"; rm -f "$$tmp"; exit 1; \
+	fi; \
+	actual=$$( (command -v sha256sum >/dev/null 2>&1 && sha256sum "$$tmp" || shasum -a 256 "$$tmp") | cut -d' ' -f1 ); \
+	if [ "$$actual" != "$(CERT_MANAGER_MANIFEST_SHA256)" ]; then \
+		echo "ERROR: cert-manager manifest checksum mismatch (expected $(CERT_MANAGER_MANIFEST_SHA256), got $$actual)"; rm -f "$$tmp"; exit 1; \
+	fi; \
+	kubectl apply -f "$$tmp"; \
+	rc=$$?; rm -f "$$tmp"; exit $$rc
+	@kubectl wait --for=condition=Available deployment/cert-manager deployment/cert-manager-cainjector deployment/cert-manager-webhook --namespace $(CERT_MANAGER_NAMESPACE) --timeout=180s
+	@echo "OK: cert-manager installed"
+
+.PHONY: uninstall-cert-manager
+uninstall-cert-manager: check-kubectl ## Uninstall cert-manager explicitly (cluster-wide)
+	@echo "Uninstalling cert-manager $(CERT_MANAGER_VERSION)..."
+	@tmp=$$(mktemp) && \
+	if ! curl -fsSL -o "$$tmp" "$(CERT_MANAGER_MANIFEST)"; then \
+		echo "ERROR: failed to download cert-manager manifest"; rm -f "$$tmp"; exit 1; \
+	fi; \
+	actual=$$( (command -v sha256sum >/dev/null 2>&1 && sha256sum "$$tmp" || shasum -a 256 "$$tmp") | cut -d' ' -f1 ); \
+	if [ "$$actual" != "$(CERT_MANAGER_MANIFEST_SHA256)" ]; then \
+		echo "ERROR: cert-manager manifest checksum mismatch (expected $(CERT_MANAGER_MANIFEST_SHA256), got $$actual)"; rm -f "$$tmp"; exit 1; \
+	fi; \
+	kubectl delete -f "$$tmp" --ignore-not-found; \
+	rc=$$?; rm -f "$$tmp"; exit $$rc
+	@echo "OK: cert-manager uninstalled"
+
 .PHONY: install-authorino-operator
 install-authorino-operator: check-kubectl ## Install the Authorino operator (pinned, cluster-wide) - prerequisite for gateway ext_authz
 	@echo "Installing Authorino operator $(AUTHORINO_OPERATOR_VERSION)..."
@@ -343,7 +379,7 @@ install-repos: check-helmfile-env ## Add all hyperfleet helm repos
 	$(call add-helm-repo,adapter,$(ADAPTER_CHART_REF))
 
 .PHONY: install-hyperfleet
-install-hyperfleet: check-helmfile-env check-hyperfleet-namespace check-jwt-config check-ext-authz-config check-tenant-isolation-config maybe-install-authorino-operator ## Install all HyperFleet components
+install-hyperfleet: check-helmfile-env check-hyperfleet-namespace check-jwt-config check-ext-authz-config check-tenant-isolation-config install-cert-manager maybe-install-authorino-operator ## Install all HyperFleet components with internal TLS
 	helmfile -f helmfile/helmfile.yaml.gotmpl -e $(HELMFILE_ENV) apply
 
 .PHONY: switch-tenant-model
@@ -361,7 +397,8 @@ switch-tenant-model: check-helmfile-env check-ext-authz-config check-tenant-isol
 	@echo "OK: tenant model switched to '$(TENANT_MODEL)' (same AuthConfig name replaces the policy; old-model tokens are rejected at the gateway)"
 
 .PHONY: install-api
-install-api: check-helmfile-env check-jwt-config check-tenant-isolation-config ## Install HyperFleet API
+install-api: check-helmfile-env check-hyperfleet-namespace check-jwt-config check-tenant-isolation-config install-cert-manager maybe-install-authorino-operator ## Install gateway TLS prerequisite and HyperFleet API
+	helmfile apply -f helmfile/helmfile.yaml.gotmpl -e $(HELMFILE_ENV) -l component=gateway
 	helmfile apply -f helmfile/helmfile.yaml.gotmpl -e $(HELMFILE_ENV) -l component=api
 
 .PHONY: install-sentinels
@@ -427,7 +464,7 @@ add-ttl-labels: ## Add TTL labels to existing GKE clusters (DRY_RUN=true by defa
 
 # ==== Namespace Cleaner Targets ====
 .PHONY: install-cleaner
-install-cleaner: check-helm check-kubectl ## Install namespace cleaner CronJob (CLEANER_SCHEDULE, CLEANER_LABEL_SELECTOR, CLEANER_AGE_MINUTES)
+install-cleaner: check-helm check-kubectl install-priority-classes ## Install namespace cleaner CronJob (CLEANER_SCHEDULE, CLEANER_LABEL_SELECTOR, CLEANER_AGE_MINUTES)
 	$(call check-namespace,CLEANER_NAMESPACE)
 	helm upgrade --install namespace-cleaner $(HELM_DIR)/namespace-cleaner \
 		--namespace $(CLEANER_NAMESPACE) \
@@ -913,15 +950,31 @@ validate-network-policies: check-helm ## Validate network-policies Helm chart re
 		|| { echo "ERROR: hyperfleet-api-postgres-ingress NetworkPolicy not rendered"; exit 1; }
 	@echo "OK: network-policies chart rendered successfully"
 
+.PHONY: validate-namespace-cleaner
+validate-namespace-cleaner: check-helm ## Validate namespace-cleaner Helm chart rendering
+	@echo "Validating namespace-cleaner chart..."
+	@out=$$(helm template namespace-cleaner $(HELM_DIR)/namespace-cleaner --namespace hyperfleet --show-only templates/cronjob.yaml) \
+		|| { echo "ERROR: namespace-cleaner chart failed to render"; exit 1; }; \
+	echo "$$out" | grep -q '^  concurrencyPolicy: Replace$$' \
+		|| { echo "ERROR: namespace-cleaner concurrency policy is not Replace"; exit 1; }; \
+	echo "$$out" | grep -q '^  startingDeadlineSeconds: 300$$' \
+		|| { echo "ERROR: namespace-cleaner starting deadline is not 300 seconds"; exit 1; }; \
+	echo "$$out" | grep -q '^          priorityClassName: hyperfleet-critical$$' \
+		|| { echo "ERROR: namespace-cleaner priority class is not hyperfleet-critical at Pod level"; exit 1; }; \
+	echo "$$out" | awk '/- name: AGE_MINUTES/{getline; if ($$0 ~ /value: "120"/) found=1} END{exit !found}' \
+		|| { echo "ERROR: namespace-cleaner AGE_MINUTES is not 120"; exit 1; }
+	@echo "OK: namespace-cleaner chart rendered with scheduled-run replacement and critical priority"
+
 .PHONY: ci-validate
 ci-validate: validate-terraform lint-helm lint-shellcheck ## Ci validate: validate terraform (all stacks) + lint helm + lint shellcheck
 
 .PHONY: ci-dry-run
-ci-dry-run: ci-validate ## Ci dry-run: ci-validate + validate maestro + validate authorino + validate network policies + validate mock OIDC
+ci-dry-run: ci-validate ## Ci dry-run: ci-validate + validate maestro + validate authorino + validate network policies + validate namespace cleaner + validate mock OIDC
 	$(MAKE) validate-maestro
 	$(MAKE) validate-mock-oidc
 	$(MAKE) validate-authorino
 	$(MAKE) validate-network-policies
+	$(MAKE) validate-namespace-cleaner
 
 .PHONY: health-check-maestro
 health-check-maestro: check-kubectl ## Verify Maestro Components

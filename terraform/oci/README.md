@@ -7,12 +7,12 @@ CI job runs against.
 
 ## What this creates
 
-| Resource                   | Purpose                                                                 |
+| Resource | Purpose |
 | --------------------------- | ------------------------------------------------------------------------ |
 | `hyperfleet-ci` compartment | Isolates CI-created OKE clusters and their dependents from everything else in the team compartment |
-| Compartment quota policy    | Caps compute cores and (if the tenancy exposes it) concurrent OKE clusters |
-| Budget + alert rules        | $150/month budget on the compartment's spend, alerting at 50/80/100% actual and 100% forecast |
-| `oci-ci-sweep` function     | Scheduled (hourly by default) sweep that deletes clusters, load balancers, block volumes, and DB systems older than the run window |
+| Compartment quota policy | Caps compute cores and (if the tenancy exposes it) concurrent OKE clusters |
+| Budget + alert rules | $150/month budget on the compartment's spend, alerting at 50/80/100% actual and 100% forecast |
+| `oci-ci-sweep` function | Scheduled (hourly by default) sweep that deletes clusters, load balancers, block volumes, and DB systems older than the run window |
 
 `hyperfleet-ci` is a sibling of the team's existing `hyperfleet-sandbox`,
 `hyperfleet-poc`, and `hyperfleet-demos` compartments under the `HyperFleet`
@@ -29,7 +29,7 @@ than the run window: OKE clusters, load balancers, block volumes, and DB
 systems.
 
 | Setting | Value |
-|---|---|
+| --- | --- |
 | Run window | `sweep_run_window_hours` (default 8h) |
 | Schedule | `sweep_schedule_recurrence` (default hourly, `0 * * * *`) |
 | Exemption | Freeform tag `hyperfleet-keep=true` holds a resource regardless of age, for manual debugging |
@@ -153,6 +153,27 @@ The `hyperfleet-dns` compartment, `oci.hypershell.app` zone, and the external-dn
 
 Add the existing OCI DNS resource values to a private tfvars file using the placeholders in [`ci.tfvars.example`](ci.tfvars.example), then review the plan before enabling DNS management.
 
+## OKE load balancer NSG policy (scaffolding)
+
+`oke_lb_nsg_policy_enabled` (default `false`) creates the IAM policy the OCI
+cloud controller manager needs to create and manage a dedicated **frontend
+NSG** per `LoadBalancer` service, instead of editing the security list
+Terraform owns for node and control-plane traffic — the decision recorded in
+the architecture repo's
+[ADR 0024](https://github.com/openshift-hyperfleet/architecture/blob/main/hyperfleet/adrs/0024-oke-load-balancer-security-nsg.md).
+
+The CCM authenticates for this specific action as the **cluster resource
+principal** (`request.principal.type = 'cluster'`), not via a worker node's
+instance principal.
+
+This is not yet wired into this stack: no OKE cluster or VCN exists here
+yet. Once one does, set `oke_compartment_id` to the compartment holding the
+OKE cluster's VCN and flip `oke_lb_nsg_policy_enabled` to `true`; every
+`LoadBalancer` service manifest in that cluster must then carry the
+`oci.oraclecloud.com/security-rule-management-mode: "NSG"` annotation to
+actually use the frontend NSG this policy authorizes — the policy alone does
+not annotate anything.
+
 ## Notifications
 
 **Owner:** `#hcm-hyperfleet-team`.
@@ -232,11 +253,11 @@ for backend setup and team access.
 ## Key configuration files
 
 | File | Purpose |
-|---|---|
+| --- | --- |
 | `terraform/oci/ci.tfvars.example` | Compartment, quota, budget, and sweep configuration |
 | `terraform/oci/ci.tfbackend.example` | Remote state configuration |
 | `terraform/oci/main.tf` | Root module wiring the compartment, quota, budget, and sweep modules |
-| `terraform/modules/{compartment,quota,budget,lifecycle,postgresql}/oci/` | Individual resource modules |
+| `terraform/modules/{compartment,quota,budget,lifecycle,postgresql,oke-lb-nsg-policy}/oci/` | Individual resource modules |
 | `functions/oci-ci-sweep/` | The sweep function's Go source |
 
 ## Troubleshooting
