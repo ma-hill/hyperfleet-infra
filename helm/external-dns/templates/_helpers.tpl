@@ -6,6 +6,10 @@
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
+{{- define "external-dns.clusterRoleName" -}}
+{{- printf "%s-%s" (include "external-dns.fullname" .) (sha256sum .Release.Namespace | trunc 8) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
 {{- define "external-dns.labels" -}}
 app.kubernetes.io/name: {{ include "external-dns.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}

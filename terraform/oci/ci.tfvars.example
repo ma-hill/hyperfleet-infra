@@ -55,7 +55,7 @@ budget_alert_recipients = [
 # external_dns_dynamic_group_id = "ocid1.dynamicgroup.oc1..REPLACE_ME"
 # external_dns_dynamic_group_matching_rule = "REPLACE_WITH_CURRENT_RULE"
 # external_dns_policy_id = "ocid1.policy.oc1..REPLACE_ME"
-# external_dns_policy_statements = ["REPLACE_WITH_CURRENT_STATEMENT"]
+# external_dns_policy_statements = ["REPLACE_WITH_ADDITIONAL_STATEMENT"]
 
 # Build and push functions/oci-ci-sweep first (see its README), then set the
 # tag you pushed here and its @sha256 digest below (read the digest back with

@@ -85,6 +85,11 @@ variable "dns_compartment_id" {
   description = "OCID of the existing DNS compartment to import."
   type        = string
   default     = null
+
+  validation {
+    condition     = !var.dns_enabled || trimspace(coalesce(var.dns_compartment_id, "")) != ""
+    error_message = "dns_compartment_id is required when dns_enabled is true."
+  }
 }
 
 variable "dns_compartment_name" {
@@ -114,6 +119,11 @@ variable "dns_zone_id" {
   description = "OCID of the existing OCI DNS zone to import."
   type        = string
   default     = null
+
+  validation {
+    condition     = !var.dns_enabled || trimspace(coalesce(var.dns_zone_id, "")) != ""
+    error_message = "dns_zone_id is required when dns_enabled is true."
+  }
 }
 
 variable "dns_zone_name" {
@@ -126,6 +136,11 @@ variable "external_dns_dynamic_group_id" {
   description = "OCID of the existing external-dns instance-principal dynamic group to import."
   type        = string
   default     = null
+
+  validation {
+    condition     = !var.dns_enabled || trimspace(coalesce(var.external_dns_dynamic_group_id, "")) != ""
+    error_message = "external_dns_dynamic_group_id is required when dns_enabled is true."
+  }
 }
 
 variable "external_dns_dynamic_group_name" {
@@ -144,12 +159,22 @@ variable "external_dns_dynamic_group_matching_rule" {
   description = "Current OCI matching rule for the external-dns dynamic group."
   type        = string
   default     = null
+
+  validation {
+    condition     = !var.dns_enabled || trimspace(coalesce(var.external_dns_dynamic_group_matching_rule, "")) != ""
+    error_message = "external_dns_dynamic_group_matching_rule is required when dns_enabled is true."
+  }
 }
 
 variable "external_dns_policy_id" {
   description = "OCID of the existing external-dns IAM policy to import."
   type        = string
   default     = null
+
+  validation {
+    condition     = !var.dns_enabled || trimspace(coalesce(var.external_dns_policy_id, "")) != ""
+    error_message = "external_dns_policy_id is required when dns_enabled is true."
+  }
 }
 
 variable "external_dns_policy_name" {
@@ -165,7 +190,7 @@ variable "external_dns_policy_description" {
 }
 
 variable "external_dns_policy_statements" {
-  description = "Current OCI policy statements for the external-dns dynamic group."
+  description = "Additional OCI policy statements to append to the built-in DNS permission."
   type        = list(string)
   default     = []
 }
