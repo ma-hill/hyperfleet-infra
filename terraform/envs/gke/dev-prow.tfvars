@@ -4,6 +4,10 @@
 #   terraform init -backend-config=envs/gke/dev-prow.tfbackend
 #   terraform plan -var-file=envs/gke/dev-prow.tfvars
 #   terraform apply -var-file=envs/gke/dev-prow.tfvars
+#
+# This file configures the prow cluster only. CI integration clusters render
+# from ci.tfvars.template via `make ci-tf-env`, so settings here do not leak
+# into CI.
 
 # =============================================================================
 # Required: Your Info

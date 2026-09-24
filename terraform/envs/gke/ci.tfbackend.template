@@ -1,0 +1,5 @@
+# Backend configuration template for ephemeral CI integration clusters.
+# Not for direct use, rendered per run by `make ci-tf-env CI_ID=<id>`.
+
+bucket = "hyperfleet-terraform-state"
+prefix = "ci/infra/__CI_ID__"

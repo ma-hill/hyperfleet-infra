@@ -1,0 +1,55 @@
+# HyperFleet GKE - Ephemeral CI Integration Clusters (template)
+#
+# Not for direct use. The hyperfleet-infra integration job renders one copy per
+# run with `make ci-tf-env CI_ID=<id>`, which writes ci-<id>.tfvars and
+# ci-<id>.tfbackend next to this file.
+#
+# Keep prow-only settings out of here, prow has its own dev-prow.tfvars.
+
+# =============================================================================
+# Identity (filled in by make ci-tf-env)
+# =============================================================================
+developer_name    = "__CI_NAME__"
+kubernetes_suffix = "default"
+
+# =============================================================================
+# Environment (cicd = exempt from lifecycle enforcement)
+# =============================================================================
+environment = "cicd"
+
+# =============================================================================
+# Cloud Provider
+# =============================================================================
+cloud_provider = "gke"
+
+# =============================================================================
+# GCP Settings
+# =============================================================================
+gcp_project_id = "hcm-hyperfleet"
+gcp_region     = "us-central1"
+gcp_zone       = "us-central1-a"
+
+gcp_network    = "hyperfleet-dev-vpc"
+gcp_subnetwork = "hyperfleet-dev-vpc-subnet"
+
+# =============================================================================
+# Cluster Configuration
+# =============================================================================
+node_count   = 1
+machine_type = "e2-standard-4"
+use_spot_vms = false
+
+# CI clusters are destroyed at the end of every run.
+enable_deletion_protection = false
+
+# CI tests the same datapath as developer clusters (Dataplane V2, native
+# NetworkPolicy). Pinned rather than left to the module default so a change
+# to that default shows up as a diff here.
+datapath_provider            = "ADVANCED_DATAPATH"
+enable_calico_network_policy = false
+
+# =============================================================================
+# Pub/Sub Configuration
+# =============================================================================
+use_pubsub         = false
+enable_dead_letter = false

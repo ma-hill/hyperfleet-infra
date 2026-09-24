@@ -990,6 +990,15 @@ health-check-maestro: check-kubectl ## Verify Maestro Components
 .PHONY: ci-test
 ci-test: install-terraform get-credentials install-priority-classes install-maestro create-maestro-consumer health-check-maestro ## Ci test: install terraform + get credentials + install maestro + create maestro consumer + health check maestro
 
+.PHONY: ci-tf-env
+ci-tf-env: ## Render ephemeral CI Terraform env files from the ci templates (CI_ID required)
+	$(call check-dns-label,CI_ID)
+	@# GKE names are capped at 40 chars: hyperfleet-dev-ci-infra-<CI_ID>-pool leaves 11
+	@[ $${#CI_ID} -le 11 ] || { echo "ERROR: CI_ID '$${CI_ID}' is longer than 11 characters, the GKE cluster and node pool names would exceed 40"; exit 1; }
+	@sed "s|__CI_ID__|$${CI_ID}|" $(TF_DIR)/envs/gke/ci.tfbackend.template > $(TF_DIR)/envs/gke/ci-$${CI_ID}.tfbackend
+	@sed "s|__CI_NAME__|ci-infra-$${CI_ID}|" $(TF_DIR)/envs/gke/ci.tfvars.template > $(TF_DIR)/envs/gke/ci-$${CI_ID}.tfvars
+	@echo "OK: rendered $(TF_DIR)/envs/gke/ci-$${CI_ID}.tfvars and ci-$${CI_ID}.tfbackend"
+
 # CI-CLEANUP
 .PHONY: ci-cleanup
 ci-cleanup: uninstall-maestro destroy-terraform ## Ci cleanup: uninstall maestro + destroy terraform
