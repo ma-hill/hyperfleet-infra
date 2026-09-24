@@ -1,0 +1,24 @@
+image:
+  repository: registry.k8s.io/external-dns/external-dns
+  tag: v0.22.0
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  name: external-dns
+
+oci:
+  compartmentId: ""
+  zoneScope: GLOBAL
+
+domainFilter: ""
+txtOwnerId: ""
+policy: upsert-only
+zoneCacheDuration: 1h
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi

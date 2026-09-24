@@ -90,6 +90,16 @@ repositories:
     url: git+https://github.com/{{ .Values.chartOrg }}/hyperfleet-adapter@charts?ref={{ .Values.charts.adapter.chartRef }}&sparse=0
 
 releases:
+  - name: external-dns
+    namespace: {{ .Values.namespace }}
+    chart: ../helm/external-dns
+    installed: {{ eq (env "EXTERNAL_DNS_ENABLED" | default "false") "true" }}
+    labels:
+      component: external-dns
+{{ if eq (env "EXTERNAL_DNS_ENABLED" | default "false") "true" }}
+    values:
+      - values/external-dns.yaml.gotmpl
+{{ end }}
 {{ if eq .Values.brokerType "rabbitmq" }}
   - name: rabbitmq
     namespace: {{ .Values.namespace }}

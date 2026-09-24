@@ -7,12 +7,12 @@ CI job runs against.
 
 ## What this creates
 
-| Resource                   | Purpose                                                                 |
+| Resource | Purpose |
 | --------------------------- | ------------------------------------------------------------------------ |
 | `hyperfleet-ci` compartment | Isolates CI-created OKE clusters and their dependents from everything else in the team compartment |
-| Compartment quota policy    | Caps compute cores and (if the tenancy exposes it) concurrent OKE clusters |
-| Budget + alert rules        | $150/month budget on the compartment's spend, alerting at 50/80/100% actual and 100% forecast |
-| `oci-ci-sweep` function     | Scheduled (hourly by default) sweep that deletes clusters, load balancers, block volumes, and DB systems older than the run window |
+| Compartment quota policy | Caps compute cores and (if the tenancy exposes it) concurrent OKE clusters |
+| Budget + alert rules | $150/month budget on the compartment's spend, alerting at 50/80/100% actual and 100% forecast |
+| `oci-ci-sweep` function | Scheduled (hourly by default) sweep that deletes clusters, load balancers, block volumes, and DB systems older than the run window |
 
 `hyperfleet-ci` is a sibling of the team's existing `hyperfleet-sandbox`,
 `hyperfleet-poc`, and `hyperfleet-demos` compartments under the `HyperFleet`
@@ -29,7 +29,7 @@ than the run window: OKE clusters, load balancers, block volumes, and DB
 systems.
 
 | Setting | Value |
-|---|---|
+| --- | --- |
 | Run window | `sweep_run_window_hours` (default 8h) |
 | Schedule | `sweep_schedule_recurrence` (default hourly, `0 * * * *`) |
 | Exemption | Freeform tag `hyperfleet-keep=true` holds a resource regardless of age, for manual debugging |
@@ -147,6 +147,24 @@ lookup in the module) rather than hardcoding one; with
 resolves to a single AD in `us-sanjose-1` today because it's the tenancy's
 only one there.
 
+## DNS
+
+The `hyperfleet-dns` compartment, `oci.hypershell.app` zone, and the external-dns dynamic group and IAM policy already exist. Set `dns_enabled=true` with their OCIDs and current definitions in private tfvars to import and manage them. The zone must never be recreated because OCI can assign different nameservers and break its parent-zone delegation.
+
+Add the existing OCI DNS resource values to a private tfvars file using the placeholders in [`ci.tfvars.example`](ci.tfvars.example), then review the plan before enabling DNS management.
+
+To stop Terraform managing the existing resources without deleting them, remove the adopted resources from state while `dns_enabled` is still true, then set `dns_enabled = false`:
+
+```bash
+terraform state rm \
+  'module.dns_compartment[0].oci_identity_compartment.this' \
+  'module.dns[0].oci_dns_zone.this' \
+  'oci_identity_dynamic_group.external_dns[0]' \
+  'oci_identity_policy.external_dns[0]'
+```
+
+Run `terraform plan` after setting `dns_enabled = false` and confirm the OCI resources are no longer managed or scheduled for destruction.
+
 ## OKE load balancer NSG policy (scaffolding)
 
 `oke_lb_nsg_policy_enabled` (default `false`) creates the IAM policy the OCI
@@ -247,7 +265,7 @@ for backend setup and team access.
 ## Key configuration files
 
 | File | Purpose |
-|---|---|
+| --- | --- |
 | `terraform/oci/ci.tfvars.example` | Compartment, quota, budget, and sweep configuration |
 | `terraform/oci/ci.tfbackend.example` | Remote state configuration |
 | `terraform/oci/main.tf` | Root module wiring the compartment, quota, budget, and sweep modules |

@@ -79,6 +79,7 @@ service:
   type: ClusterIP
   port: 8000
   adminPort: 9901
+  annotations: {}
 
 tls:
   hyperfleetApiTLSSecretName: hyperfleet-api-server-cert

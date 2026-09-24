@@ -42,6 +42,10 @@ helm plugin install https://github.com/databus23/helm-diff --verify=false
 - [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) (`gcloud`) + `gke-gcloud-auth-plugin`
 - Access to the `hcm-hyperfleet` GCP project
 
+### OCI external-dns (optional)
+
+The OCI external-dns addon is disabled by default. It uses instance principals on OKE worker nodes to publish records for Kubernetes Services. For Helmfile configuration and installation usage, see [`helm/external-dns/README.md`](helm/external-dns/README.md). For OCI DNS resource configuration, see [`terraform/oci/README.md`](terraform/oci/README.md).
+
 ### kind only
 
 - `kind`
