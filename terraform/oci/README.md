@@ -153,6 +153,18 @@ The `hyperfleet-dns` compartment, `oci.hypershell.app` zone, and the external-dn
 
 Add the existing OCI DNS resource values to a private tfvars file using the placeholders in [`ci.tfvars.example`](ci.tfvars.example), then review the plan before enabling DNS management.
 
+To stop Terraform managing the existing resources without deleting them, remove the adopted resources from state while `dns_enabled` is still true, then set `dns_enabled = false`:
+
+```bash
+terraform state rm \
+  'module.dns_compartment[0].oci_identity_compartment.this' \
+  'module.dns[0].oci_dns_zone.this' \
+  'oci_identity_dynamic_group.external_dns[0]' \
+  'oci_identity_policy.external_dns[0]'
+```
+
+Run `terraform plan` after setting `dns_enabled = false` and confirm the OCI resources are no longer managed or scheduled for destruction.
+
 ## OKE load balancer NSG policy (scaffolding)
 
 `oke_lb_nsg_policy_enabled` (default `false`) creates the IAM policy the OCI
